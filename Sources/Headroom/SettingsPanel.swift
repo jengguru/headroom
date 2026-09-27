@@ -3,8 +3,6 @@ import SwiftUI
 import HeadroomCore
 
 struct SettingsPanel: View {
-    let done: () -> Void
-
     @EnvironmentObject private var store: UsageStore
     @AppStorage(SettingsKey.refreshMinutes) private var refreshMinutes = 5
     @AppStorage(SettingsKey.notificationsEnabled) private var notificationsEnabled = true
@@ -63,13 +61,9 @@ struct SettingsPanel: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-
-            HStack {
-                Spacer()
-                Button("Done", action: done).keyboardShortcut(.defaultAction)
-            }
         }
-        .padding(16)
+        .padding(20)
+        .frame(width: 360)
     }
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

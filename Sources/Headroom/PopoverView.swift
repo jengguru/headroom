@@ -23,7 +23,6 @@ struct PopoverView: View {
     let scope: UsageProvider?
 
     @EnvironmentObject private var store: UsageStore
-    @State private var showingSettings = false
 
     private var shownStores: [ProviderStore] {
         if let scope { return [store.store(for: scope)] }
@@ -38,32 +37,11 @@ struct PopoverView: View {
                 .padding(.top, 14)
                 .padding(.bottom, 10)
 
-            // `.id` forces SwiftUI to tear down and rebuild this subtree
-            // (rather than diff it) whenever the mode changes. Without it,
-            // the MenuBarExtra window keeps whatever height was tallest so
-            // far — e.g. Settings — and doesn't shrink back down for the
-            // shorter main view, leaving blank space reserved above it.
-            Group {
-                if showingSettings {
-                    SettingsPanel(done: { showingSettings = false })
-                        .environmentObject(store)
-                } else {
-                    VStack(spacing: 0) {
-                        content(shown)
-                        Divider()
-                        actions(shown).padding(16)
-                    }
-                }
-            }
-            .id(showingSettings)
+            content(shown)
+            Divider()
+            actions(shown).padding(16)
         }
         .frame(width: 320)
-        .fixedSize(horizontal: false, vertical: true)
-        // MenuBarExtra's own window doesn't reliably shrink back down once
-        // it's grown for a taller view (e.g. Settings) — `fixedSize` and
-        // `.id`-driven rebuilds report the right ideal size, but the actual
-        // NSWindow can still keep its old, taller frame. Force it directly.
-        .background(WindowHeightSync())
         .onAppear { shown.forEach { $0.refreshIfStale() } }
     }
 
@@ -80,14 +58,21 @@ struct PopoverView: View {
             }
             Spacer()
             Button {
-                showingSettings.toggle()
+                // The classic AppKit trick for opening a SwiftUI `Settings`
+                // scene's window on demand: a menu-bar-only (LSUIElement)
+                // app has no visible "Settings…" app-menu item to click,
+                // but this selector still triggers it. Activating first
+                // brings the window to the front — an accessory app doesn't
+                // do that on its own the way a regular app would.
+                NSApp.activate(ignoringOtherApps: true)
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
             } label: {
-                Image(systemName: showingSettings ? "xmark.circle" : "gearshape")
+                Image(systemName: "gearshape")
                     .font(.system(size: 16))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help(showingSettings ? "Close settings" : "Settings")
+            .help("Settings")
         }
     }
 
@@ -431,36 +416,5 @@ private struct StatusLine: View {
             guard let snapshot = provider.snapshot else { return "Waiting for data" }
             return "Updated \(UsageFormatting.relativeAge(of: snapshot.fetchedAt, now: now))"
         }
-    }
-}
-
-/// Invisible helper that keeps the enclosing `MenuBarExtra` window's actual
-/// frame in sync with its SwiftUI content's ideal height. `MenuBarExtra`'s
-/// window can grow to fit a taller view (e.g. Settings) and then simply not
-/// shrink back down on its own once a shorter view replaces it, leaving
-/// blank space (and its shadow) reserved above the visible content. This
-/// reads the hosting view's real fitting size and resizes the window to
-/// match, anchoring the window's top edge so it keeps hanging from the
-/// status item rather than growing/shrinking from the wrong end.
-private struct WindowHeightSync: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async { Self.sync(view) }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { Self.sync(nsView) }
-    }
-
-    private static func sync(_ view: NSView) {
-        guard let window = view.window, let contentView = window.contentView else { return }
-        let fittingHeight = contentView.fittingSize.height
-        guard fittingHeight > 0, abs(window.frame.height - fittingHeight) > 0.5 else { return }
-        var frame = window.frame
-        let top = frame.maxY
-        frame.size.height = fittingHeight
-        frame.origin.y = top - fittingHeight
-        window.setFrame(frame, display: true)
     }
 }
