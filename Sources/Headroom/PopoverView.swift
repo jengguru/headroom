@@ -38,19 +38,26 @@ struct PopoverView: View {
                 .padding(.top, 14)
                 .padding(.bottom, 10)
 
-            if showingSettings {
-                SettingsPanel(done: { showingSettings = false })
-                    .environmentObject(store)
-            } else {
-                content(shown)
-                Divider()
-                actions(shown).padding(16)
+            // `.id` forces SwiftUI to tear down and rebuild this subtree
+            // (rather than diff it) whenever the mode changes. Without it,
+            // the MenuBarExtra window keeps whatever height was tallest so
+            // far — e.g. Settings — and doesn't shrink back down for the
+            // shorter main view, leaving blank space reserved above it.
+            Group {
+                if showingSettings {
+                    SettingsPanel(done: { showingSettings = false })
+                        .environmentObject(store)
+                } else {
+                    VStack(spacing: 0) {
+                        content(shown)
+                        Divider()
+                        actions(shown).padding(16)
+                    }
+                }
             }
+            .id(showingSettings)
         }
         .frame(width: 320)
-        // Without this, the MenuBarExtra window keeps whatever height was
-        // tallest so far (e.g. Settings) and doesn't shrink back down for a
-        // shorter view, leaving blank space reserved above it.
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { shown.forEach { $0.refreshIfStale() } }
     }
