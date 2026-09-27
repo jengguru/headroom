@@ -5,6 +5,25 @@ decision, newest first. `CHANGELOG.md` says *what* shipped; this says *why*,
 including the paths that were tried and abandoned, so nobody (human or
 Claude) re-litigates or re-tries them from scratch.
 
+## 2026-09-27 — Made the combined popover more compact by tightening spacing, not restructuring it
+
+**Context:** With Claude + Codex both on, the combined popover's stacked
+per-provider cards felt tall and "clunky".
+
+**Options considered:** (1) shrink existing card padding/font sizes, (2)
+collapse each primary window to a single-line row (title + % + bar, no
+reset countdown) instead of a card, (3) hide `extraWindows` behind a
+"Show more" disclosure.
+
+**Decision:** Went with (1) only — smallest, lowest-risk change, and kept
+all the same information visible. `Card` padding 14→10, `UsageBar` height
+6→5, `ProviderSection`/`content` inter-item spacing tightened, and the
+compact `UsageCard`'s percentage font 20→17.
+
+**If still too tall:** (2) and (3) are still on the table — (2) trades
+away the reset countdown for the biggest height win; (3) keeps everything
+but requires an extra tap to see Opus/Sonnet-specific windows.
+
 ## 2026-09-27 — Did not add multi-Claude-account tracking
 
 **Context:** Wanted to track a personal and a work (Enterprise/SSO) Claude
