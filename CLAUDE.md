@@ -9,6 +9,14 @@ When cutting a release: rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD`
 matching the new git tag and `Resources/Info.plist`'s `CFBundleShortVersionString`,
 then add a fresh empty `[Unreleased]` above it.
 
+## Record non-trivial decisions, especially abandoned ones
+For anything more than a small fix — a new feature, a design considered and
+rejected, an approach tried and reverted — add an entry to `DECISIONS.md`
+in the same PR: context, what was decided (or undone), and why. This is
+what stops the same dead end (e.g. an approach that turned out to need a
+credential too sensitive to store) from being re-explored from scratch in
+a future session.
+
 ## Build & test
 - `swift build` / `swift test` — this package has no third-party dependencies
   (`scripts/check-no-dependencies.sh` enforces that in CI).
