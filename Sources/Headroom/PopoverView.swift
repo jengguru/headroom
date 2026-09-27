@@ -163,6 +163,14 @@ private struct ProviderSection: View {
             }
             Spacer()
             Button {
+                provider.start()
+            } label: {
+                Image(systemName: "arrow.clockwise").foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(provider.status == .loading)
+            .help("Refresh \(provider.label)")
+            Button {
                 NSWorkspace.shared.open(provider.provider.websiteURL)
             } label: {
                 Image(systemName: "arrow.up.right.square").foregroundStyle(.secondary)
