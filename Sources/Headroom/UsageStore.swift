@@ -108,6 +108,7 @@ final class ProviderStore: ObservableObject, Identifiable {
 extension Sequence where Element == ProviderStore {
     /// The store whose snapshot is closest to a limit. Ties go to the earlier
     /// element, so the menu bar doesn't flip between accounts at equal usage.
+    @MainActor
     func mostConstrained() -> ProviderStore? {
         var best: ProviderStore?
         for store in self {
