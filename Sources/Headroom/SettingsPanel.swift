@@ -1,6 +1,14 @@
+import AppKit
 import ServiceManagement
 import SwiftUI
 import HeadroomCore
+
+/// Holds a reference to the Settings window once it exists, so the gear
+/// button can bring it forward on every later click — an accessory
+/// (`LSUIElement`) app doesn't do that for its windows on its own.
+enum SettingsWindowReference {
+    static weak var window: NSWindow?
+}
 
 struct SettingsPanel: View {
     @EnvironmentObject private var store: UsageStore
@@ -64,6 +72,7 @@ struct SettingsPanel: View {
         }
         .padding(20)
         .frame(width: 360)
+        .background(SettingsWindowSetup())
     }
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -101,4 +110,22 @@ struct SettingsPanel: View {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }
+}
+
+/// Invisible helper that captures the Settings window once, the first time
+/// its content is created, and sets it to follow you to whichever macOS
+/// Space is currently active. Without this an accessory app's window stays
+/// pinned to the Space it first opened on.
+private struct SettingsWindowSetup: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            guard let window = view.window else { return }
+            window.collectionBehavior.insert(.moveToActiveSpace)
+            SettingsWindowReference.window = window
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }

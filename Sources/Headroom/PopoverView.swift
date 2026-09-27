@@ -61,11 +61,15 @@ struct PopoverView: View {
                 // The classic AppKit trick for opening a SwiftUI `Settings`
                 // scene's window on demand: a menu-bar-only (LSUIElement)
                 // app has no visible "Settings…" app-menu item to click,
-                // but this selector still triggers it. Activating first
-                // brings the window to the front — an accessory app doesn't
-                // do that on its own the way a regular app would.
+                // but this selector still triggers it (creating the window
+                // the first time). An accessory app doesn't reliably bring
+                // its own windows to the front or the current Space on its
+                // own, so once the window exists, force both explicitly too.
                 NSApp.activate(ignoringOtherApps: true)
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                DispatchQueue.main.async {
+                    SettingsWindowReference.window?.makeKeyAndOrderFront(nil)
+                }
             } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 16))

@@ -41,6 +41,17 @@ underlying `MenuBarExtra` sizing bug is still there; don't retry 1–3 above
 without a different mechanism (e.g. an `NSPopover`-based custom
 implementation instead of `MenuBarExtra`, which has its own resizing API).
 
+**Follow-up (confirmed on a real Mac):** the new Settings window opened,
+but behind other apps and not on the current macOS Space — an accessory
+(`LSUIElement`) app doesn't get "bring to front" / "follow me to this
+Space" for its windows for free the way a regular app does.
+`SettingsWindowSetup` (an `NSViewRepresentable` in `SettingsPanel`) sets
+`window.collectionBehavior.insert(.moveToActiveSpace)` once, when the
+window is first created, and stashes a weak reference to it
+(`SettingsWindowReference`) so the gear button can call
+`window.makeKeyAndOrderFront(nil)` on every click after `NSApp.activate` —
+not just the first time the window is created.
+
 ## 2026-09-27 — Made the combined popover more compact by tightening spacing, not restructuring it
 
 **Context:** With Claude + Codex both on, the combined popover's stacked
