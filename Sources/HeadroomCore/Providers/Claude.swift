@@ -2,6 +2,9 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+#if canImport(CryptoKit)
+import CryptoKit
+#endif
 
 // MARK: - Credentials
 
@@ -75,13 +78,30 @@ public struct ClaudeCredentials: Equatable, Sendable {
         return FileCredentialsSource(url: dir.appendingPathComponent(".credentials.json"))
     }
 
-    /// Keychain item "Claude Code-credentials" first, then the credentials files —
-    /// for the default account. The Keychain item is a single, unnamed slot
-    /// shared by every `claude` sign-in on the Mac, so it only ever holds
-    /// whichever account last ran `/login`: it can't be trusted for a named
-    /// `account` with its own `configDir`, which is file-only instead —
-    /// point `configDir` at a directory holding that account's own
-    /// `.credentials.json` (e.g. from `CLAUDE_CONFIG_DIR=<dir> claude`, then `/login`).
+    /// The Keychain service Claude Code uses when `CLAUDE_CONFIG_DIR` is set
+    /// to a non-default directory: `"Claude Code-credentials-"` + the first 8
+    /// hex digits of SHA-256 of that directory's absolute path (tilde-expanded,
+    /// no trailing slash — confirmed against a real multi-account install;
+    /// undocumented, so treat it as best-effort).
+    static func namedKeychainService(configDir: String) -> String? {
+        #if canImport(CryptoKit)
+        var path = (configDir as NSString).expandingTildeInPath
+        if path.count > 1, path.hasSuffix("/") { path.removeLast() }
+        let hex = SHA256.hash(data: Data(path.utf8)).map { String(format: "%02x", $0) }.joined()
+        return "\(keychainService)-\(hex.prefix(8))"
+        #else
+        return nil
+        #endif
+    }
+
+    /// For the default account: Keychain item "Claude Code-credentials", then
+    /// the credentials files. For a named `account` with its own `configDir`:
+    /// the Keychain item Claude Code shards to for that directory (see
+    /// `namedKeychainService`), then that directory's own `.credentials.json`
+    /// as a fallback for installs that write a file instead. Either way, a
+    /// named account never falls back to the default account's own Keychain
+    /// item or `~/.claude` — that would silently show the wrong account's
+    /// usage under this one's label.
     public static func loader(account: ClaudeAccountConfig = .default, sources: [CredentialsDataSource]? = nil) -> CredentialsLoader<ClaudeCredentials> {
         var standard: [CredentialsDataSource] = []
         if account.configDir.isEmpty {
@@ -90,6 +110,11 @@ public struct ClaudeCredentials: Equatable, Sendable {
             #endif
             standard.append(contentsOf: fileLocations() as [CredentialsDataSource])
         } else {
+            #if os(macOS)
+            if let service = namedKeychainService(configDir: account.configDir) {
+                standard.append(KeychainCLICredentialsSource(service: service))
+            }
+            #endif
             standard.append(fileLocation(configDir: account.configDir))
         }
         return CredentialsLoader(sources: sources ?? standard, parse: { try ClaudeCredentials.parse($0) }, notFound: { ClaudeCredentialsError.notFound })

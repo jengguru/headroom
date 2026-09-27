@@ -54,20 +54,25 @@ I compared four possible sources before building:
 
 #### Tracking a personal and a work account side by side
 
-The Keychain item above is a single, unnamed slot: it always holds whichever
-account last ran `claude` → `/login`, so switching between two accounts
-normally means logging out and back in every time you want to check the
-other one's usage.
+The default Keychain item above always holds whichever account last ran
+`claude` → `/login`, so switching between two accounts normally means
+logging out and back in every time you want to check the other one's usage.
 
-Settings → Services lets you add a named Claude account with its own
-**config dir**. An account with a config dir set skips the Keychain entirely
-and reads `<dir>/.credentials.json` only, so it never shows the wrong
-account's usage by falling back to the default one. To use it:
+Claude Code avoids that itself once you give it a separate `CLAUDE_CONFIG_DIR`
+per account: instead of the shared `Claude Code-credentials` item, it stores
+that session under `Claude Code-credentials-<hash>`, where `<hash>` is the
+first 8 hex digits of SHA-256 of the config dir's absolute path (reverse-engineered
+against a real install; undocumented, so treat it as best-effort). Settings →
+Services lets you add a named Claude account with its own **config dir**; an
+account with a config dir set computes that same sharded Keychain name (never
+falling back to the default account's item, so it can't silently show the
+wrong account's usage), with `<dir>/.credentials.json` as a fallback for
+installs that write a file instead. To use it:
 
 1. Sign in to the second account into its own directory: `CLAUDE_CONFIG_DIR=~/.claude-work claude`, then `/login`.
 2. In Headroom's Settings, add an account, name it (e.g. "Work"), and set its config dir to `~/.claude-work`.
 
-Both accounts then poll independently and get their own cards, notifications and threshold state — no more logging out to check the other one. This relies on Claude Code actually writing that account's session to a file under its `CLAUDE_CONFIG_DIR`, rather than only the shared Keychain item; if your Claude Code version keeps that session in the Keychain regardless, copy the `.credentials.json` it would have written (or the Keychain item's contents) into `<dir>/.credentials.json` by hand after signing in, and refresh it there whenever the token expires.
+Both accounts then poll independently and get their own cards, notifications and threshold state — no more logging out to check the other one. Claude Code refreshes each account's token on its own the same way it does the default one, so this keeps working indefinitely, not just until the token first expires.
 
 ### Codex
 

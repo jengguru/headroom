@@ -213,6 +213,23 @@ final class ClaudeCredentialsTests: XCTestCase {
         }
     }
 
+    #if canImport(CryptoKit)
+    func testNamedKeychainServiceMatchesClaudeCodesSharding() {
+        // Confirmed against a real Claude Code install: logging in with
+        // CLAUDE_CONFIG_DIR=/Users/kittichai.phi/.claude-work created a
+        // Keychain item named "Claude Code-credentials-314bc754".
+        XCTAssertEqual(
+            ClaudeCredentials.namedKeychainService(configDir: "/Users/kittichai.phi/.claude-work"),
+            "Claude Code-credentials-314bc754"
+        )
+        // A trailing slash on the same directory must hash the same way.
+        XCTAssertEqual(
+            ClaudeCredentials.namedKeychainService(configDir: "/Users/kittichai.phi/.claude-work/"),
+            "Claude Code-credentials-314bc754"
+        )
+    }
+    #endif
+
     func testDefaultAccountConstant() {
         XCTAssertEqual(ClaudeAccountConfig.default.id, "default")
         XCTAssertEqual(ClaudeAccountConfig.default.label, "Claude")
