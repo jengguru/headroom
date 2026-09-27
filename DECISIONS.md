@@ -5,6 +5,35 @@ decision, newest first. `CHANGELOG.md` says *what* shipped; this says *why*,
 including the paths that were tried and abandoned, so nobody (human or
 Claude) re-litigates or re-tries them from scratch.
 
+## 2026-09-27 — Settings-window opening: stopped relying on a private selector
+
+**Context:** The v0.4.0 gear button opened Settings via
+`NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)` —
+the only way to trigger a SwiftUI `Settings { }` scene's window
+programmatically that existed when this app's minimum target (macOS 13,
+Ventura) was set. Confirmed working during development on an older macOS
+version.
+
+**Broke on a real Mac running macOS 26:** clicking the gear closed the
+popover and switched the Dock icon on (so the activation-policy dance was
+fine), but no Settings window ever appeared — `sendAction` was silently
+returning without effect. `showSettingsWindow:` is undocumented and
+private; nothing guarantees it keeps working, or keeps the same name,
+across macOS versions, and evidently it didn't survive to macOS 26.
+
+**Decision:** Use SwiftUI's own public `openSettings` environment action
+(`@Environment(\.openSettings)`, macOS 14+) instead, gated by
+`if #available(macOS 14.0, *)`. The private selector is now only a
+fallback for macOS 13 itself (which predates the public API and can't use
+it) — every macOS version this app has actually been confirmed to run on
+now goes through the documented path.
+
+**If this breaks again:** don't reach for another private selector: the
+private path is exactly the kind of thing that stopped working here once
+already. Check whether Apple's public `openSettings` action itself changed
+behavior first (e.g. Apple further restricting accessory-app window
+ordering), not whether it needs replacing.
+
 ## 2026-09-27 — Distribute via a separate Homebrew tap, not the main repo
 
 **Context:** Wanted `brew install --cask headroom` instead of manually
