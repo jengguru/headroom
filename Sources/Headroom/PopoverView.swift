@@ -26,7 +26,7 @@ struct PopoverView: View {
     @State private var showingSettings = false
 
     private var shownStores: [ProviderStore] {
-        if let scope { return store.stores(for: scope) }
+        if let scope { return [store.store(for: scope)] }
         return store.enabledStores
     }
 
@@ -77,9 +77,9 @@ struct PopoverView: View {
 
     private func subtitle(_ shown: [ProviderStore]) -> String {
         guard shown.count == 1, let only = shown.first else {
-            return shown.isEmpty ? "No services turned on" : shown.map(\.label).joined(separator: " & ") + " usage"
+            return shown.isEmpty ? "No services turned on" : shown.map(\.provider.displayName).joined(separator: " & ") + " usage"
         }
-        return only.planDescription ?? "\(only.label) usage"
+        return only.planDescription ?? "\(only.provider.displayName) usage"
     }
 
     @ViewBuilder
@@ -127,10 +127,10 @@ struct PopoverView: View {
 }
 
 extension ProviderStore {
-    /// "Claude Max plan", "Personal Max plan", "Codex Plus plan".
+    /// "Claude Max plan", "Codex Plus plan".
     var planDescription: String? {
         guard let plan = snapshot?.plan, !plan.isEmpty else { return nil }
-        return "\(label) \(plan.capitalized) plan"
+        return "\(provider.displayName) \(plan.capitalized) plan"
     }
 }
 
@@ -157,19 +157,11 @@ private struct ProviderSection: View {
 
     private var heading: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(provider.label).font(.subheadline.weight(.bold))
+            Text(provider.provider.displayName).font(.subheadline.weight(.bold))
             if let plan = provider.snapshot?.plan, !plan.isEmpty {
                 Text("\(plan.capitalized) plan").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            Button {
-                provider.start()
-            } label: {
-                Image(systemName: "arrow.clockwise").foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .disabled(provider.status == .loading)
-            .help("Refresh \(provider.label)")
             Button {
                 NSWorkspace.shared.open(provider.provider.websiteURL)
             } label: {
@@ -185,7 +177,7 @@ private struct ProviderSection: View {
         if let snapshot = provider.snapshot {
             let primary = snapshot.windows.filter(\.isPrimary)
             if snapshot.windows.isEmpty {
-                MessageCard(icon: "info.circle", text: "Your plan reports no \(provider.label) usage limits.")
+                MessageCard(icon: "info.circle", text: "Your plan reports no \(provider.provider.displayName) usage limits.")
             }
             ForEach(primary, id: \.id) { window in
                 UsageCard(window: window, icon: window.category == .session ? "clock.badge.checkmark" : "calendar.badge.clock",
@@ -198,7 +190,7 @@ private struct ProviderSection: View {
             switch provider.status {
             case .signedOut(let message):
                 MessageCard(icon: "person.crop.circle.badge.questionmark",
-                            text: message + "\n\nNot using \(provider.label)? Turn it off in Settings.")
+                            text: message + "\n\nNot using \(provider.provider.displayName)? Turn it off in Settings.")
             case .error(let message):
                 MessageCard(icon: "exclamationmark.triangle", text: message)
             case .idle, .loading, .ok:

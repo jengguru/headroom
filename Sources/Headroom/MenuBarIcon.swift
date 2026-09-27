@@ -47,27 +47,25 @@ enum MenuBarIcon {
     }
 }
 
-/// The combined icon: rings for whichever enabled store is closest to a limit.
+/// The combined icon: rings for whichever enabled provider is closest to a limit.
 struct CombinedMenuBarLabel: View {
     @ObservedObject var store: UsageStore
 
     var body: some View {
         let shown = store.mostConstrained
-        // Name the account only when there is more than one store it could be.
-        MenuBarLabelContent(snapshot: shown?.snapshot, name: store.enabledStores.count > 1 ? shown?.label : nil,
+        // Name the provider only when there is more than one it could be.
+        MenuBarLabelContent(snapshot: shown?.snapshot, name: store.enabledStores.count > 1 ? shown?.provider.displayName : nil,
                             alwaysShowName: false)
     }
 }
 
-/// One provider's own icon ("One icon per service"): rings for whichever of
-/// its accounts (usually just one) is closest to a limit. Always named,
-/// since the rings alone look the same for every provider.
-struct GroupMenuBarLabel: View {
-    let stores: [ProviderStore]
+/// One provider's own icon ("One icon per service"). Always named, since the
+/// rings alone look the same for every provider.
+struct ProviderMenuBarLabel: View {
+    @ObservedObject var store: ProviderStore
 
     var body: some View {
-        let shown = stores.mostConstrained() ?? stores.first
-        MenuBarLabelContent(snapshot: shown?.snapshot, name: shown?.label ?? "?", alwaysShowName: true)
+        MenuBarLabelContent(snapshot: store.snapshot, name: store.provider.displayName, alwaysShowName: true)
     }
 }
 

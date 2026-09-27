@@ -30,14 +30,14 @@ struct HeadroomApp: App {
         MenuBarExtra(isInserted: inserted(!showsCombined && claudeEnabled)) {
             PopoverView(scope: .claude).environmentObject(store)
         } label: {
-            GroupMenuBarLabel(stores: store.stores(for: .claude))
+            ProviderMenuBarLabel(store: store.store(for: .claude))
         }
         .menuBarExtraStyle(.window)
 
         MenuBarExtra(isInserted: inserted(!showsCombined && codexEnabled)) {
             PopoverView(scope: .codex).environmentObject(store)
         } label: {
-            GroupMenuBarLabel(stores: store.stores(for: .codex))
+            ProviderMenuBarLabel(store: store.store(for: .codex))
         }
         .menuBarExtraStyle(.window)
     }

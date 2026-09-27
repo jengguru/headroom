@@ -15,12 +15,7 @@ final class ProviderStore: ObservableObject, Identifiable {
     }
 
     let provider: UsageProvider
-    /// Distinguishes several stores for the same provider (Claude accounts).
-    /// Empty for providers that only ever have one, like Codex.
-    let accountID: String
-    /// "Claude", "Personal", "Acme Corp": shown in the UI and notifications.
-    let label: String
-    nonisolated var id: String { "\(provider.rawValue).\(accountID)" }
+    nonisolated var id: UsageProvider { provider }
 
     @Published private(set) var snapshot: UsageSnapshot?
     @Published private(set) var status: Status = .idle
@@ -33,11 +28,9 @@ final class ProviderStore: ObservableObject, Identifiable {
     /// Set after a 429 so neither the poll loop nor the Refresh button hammers the endpoint.
     private var rateLimitedUntil: Date?
 
-    init(fetcher: UsageFetcher, accountID: String = "", label: String? = nil) {
+    init(fetcher: UsageFetcher) {
         self.provider = fetcher.provider
         self.fetcher = fetcher
-        self.accountID = accountID
-        self.label = label ?? fetcher.provider.displayName
     }
 
     var isRunning: Bool { pollTask != nil }
@@ -105,63 +98,26 @@ final class ProviderStore: ObservableObject, Identifiable {
     }
 }
 
-extension Sequence where Element == ProviderStore {
-    /// The store whose snapshot is closest to a limit. Ties go to the earlier
-    /// element, so the menu bar doesn't flip between accounts at equal usage.
-    @MainActor
-    func mostConstrained() -> ProviderStore? {
-        var best: ProviderStore?
-        for store in self {
-            guard let peak = store.snapshot?.peakUtilization else { continue }
-            if let currentPeak = best?.snapshot?.peakUtilization, currentPeak >= peak { continue }
-            best = store
-        }
-        return best
-    }
-}
-
 @MainActor
 final class UsageStore: ObservableObject {
-    @Published private(set) var providers: [ProviderStore] = []
+    let providers: [ProviderStore]
     let notifier = NotificationManager()
     private let evaluator = ThresholdEvaluator()
     private var forwarding: [AnyCancellable] = []
 
     init() {
+        providers = [ProviderStore(fetcher: ClaudeUsageClient()), ProviderStore(fetcher: CodexUsageClient())]
         notifier.requestAuthorization()
-        rebuild(claudeAccounts: AppSettings.claudeAccounts, codex: ProviderStore(fetcher: CodexUsageClient()))
-        applyEnabledProviders()
-    }
-
-    /// Replaces the Claude stores with one per configured account, keeping
-    /// their poll loops running if they were. Codex is untouched.
-    func updateClaudeAccounts(_ accounts: [ClaudeAccountConfig]) {
-        AppSettings.claudeAccounts = accounts
-        let codex = providers.first { $0.provider == .codex } ?? ProviderStore(fetcher: CodexUsageClient())
-        providers.filter { $0.provider == .claude }.forEach { $0.stop() }
-        // Re-read rather than reuse `accounts`: the setter sanitizes (e.g. a
-        // blank label), and stores should reflect what got persisted.
-        rebuild(claudeAccounts: AppSettings.claudeAccounts, codex: codex)
-        applyEnabledProviders()
-    }
-
-    private func rebuild(claudeAccounts: [ClaudeAccountConfig], codex: ProviderStore) {
-        forwarding = []
-        let claudeStores = claudeAccounts.map { account in
-            ProviderStore(fetcher: ClaudeUsageClient(credentials: ClaudeCredentials.loader(account: account)),
-                          accountID: account.id, label: account.label)
-        }
-        providers = claudeStores + [codex]
         for store in providers {
-            let accountID = store.accountID
-            store.onSnapshot = { [weak self] in self?.checkThresholds($0, accountID: accountID) }
+            store.onSnapshot = { [weak self] in self?.checkThresholds($0) }
             // The combined menu bar icon depends on every provider.
             forwarding.append(store.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() })
         }
+        applyEnabledProviders()
     }
 
-    func stores(for provider: UsageProvider) -> [ProviderStore] {
-        providers.filter { $0.provider == provider }
+    func store(for provider: UsageProvider) -> ProviderStore {
+        providers.first { $0.provider == provider }!
     }
 
     var enabledStores: [ProviderStore] {
@@ -186,18 +142,18 @@ final class UsageStore: ObservableObject {
         enabledStores.forEach { $0.start() }
     }
 
-    /// The enabled store closest to one of its limits, for the combined icon.
+    /// The enabled provider closest to one of its limits, for the combined icon.
     var mostConstrained: ProviderStore? {
         let enabled = enabledStores
-        return enabled.mostConstrained() ?? enabled.first
+        guard let snapshot = enabled.compactMap(\.snapshot).mostConstrained() else { return enabled.first }
+        return store(for: snapshot.provider)
     }
 
-    private func checkThresholds(_ snapshot: UsageSnapshot, accountID: String) {
-        var state = AppSettings.thresholdState(for: snapshot.provider, accountID: accountID)
+    private func checkThresholds(_ snapshot: UsageSnapshot) {
+        var state = AppSettings.thresholdState(for: snapshot.provider)
         let alerts = evaluator.evaluate(snapshot: snapshot, thresholds: AppSettings.thresholds, state: &state)
-        AppSettings.setThresholdState(state, for: snapshot.provider, accountID: accountID)
+        AppSettings.setThresholdState(state, for: snapshot.provider)
         guard AppSettings.notificationsEnabled else { return }
-        let label = providers.first { $0.provider == snapshot.provider && $0.accountID == accountID }?.label
-        alerts.forEach { notifier.post($0, accountID: accountID, accountLabel: label) }
+        alerts.forEach(notifier.post)
     }
 }

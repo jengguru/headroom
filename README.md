@@ -52,28 +52,6 @@ I compared four possible sources before building:
 - **Polling:** every 5 minutes by default (2–30 is configurable). On a 429 the app backs off (it honours `Retry-After`, waits at least 2 minutes and at most 1 hour). The Refresh button respects the backoff.
 - **Privacy:** the only Claude request goes to `api.anthropic.com`. The token stays in memory for the length of each request.
 
-#### Tracking a personal and a work account side by side
-
-The default Keychain item above always holds whichever account last ran
-`claude` → `/login`, so switching between two accounts normally means
-logging out and back in every time you want to check the other one's usage.
-
-Claude Code avoids that itself once you give it a separate `CLAUDE_CONFIG_DIR`
-per account: instead of the shared `Claude Code-credentials` item, it stores
-that session under `Claude Code-credentials-<hash>`, where `<hash>` is the
-first 8 hex digits of SHA-256 of the config dir's absolute path (reverse-engineered
-against a real install; undocumented, so treat it as best-effort). Settings →
-Services lets you add a named Claude account with its own **config dir**; an
-account with a config dir set computes that same sharded Keychain name (never
-falling back to the default account's item, so it can't silently show the
-wrong account's usage), with `<dir>/.credentials.json` as a fallback for
-installs that write a file instead. To use it:
-
-1. Sign in to the second account into its own directory: `CLAUDE_CONFIG_DIR=~/.claude-work claude`, then `/login`.
-2. In Headroom's Settings, add an account, name it (e.g. "Work"), and set its config dir to `~/.claude-work`.
-
-Both accounts then poll independently and get their own cards, notifications and threshold state — no more logging out to check the other one. Claude Code refreshes each account's token on its own the same way it does the default one, so this keeps working indefinitely, not just until the token first expires.
-
 ### Codex
 
 **Chosen:** `GET https://chatgpt.com/backend-api/wham/usage`, the endpoint Codex CLI's `/status` command reads (checked against the [openai/codex](https://github.com/openai/codex) source, `codex-rs/backend-client`). It returns:
@@ -104,12 +82,11 @@ Sources/
     Credentials.swift       file / Keychain (security CLI) sources + first-match loader
     Providers/Claude.swift  Claude Code credentials, /api/oauth/usage client + decoder
     Providers/Codex.swift   Codex auth.json credentials, /wham/usage client + decoder
-    ClaudeAccount.swift     ClaudeAccountConfig: one named Claude sign-in + its config dir
     Thresholds.swift        once-per-window threshold alerts (hysteresis + reset detection)
     UsageFormatting.swift   "3h 27m", "Today at 16:00", % and colour levels
   Headroom/                 SwiftUI MenuBarExtra app (LSUIElement, no Dock icon)
     HeadroomApp.swift       MenuBarExtra scenes: one combined, or one per provider
-    UsageStore.swift        per-account @MainActor poll loop, backoff, error states
+    UsageStore.swift        per-provider @MainActor poll loop, backoff, error states
     PopoverView.swift       the popover UI
     SettingsPanel.swift     in-popover settings
     MenuBarIcon.swift       ring icon drawing + labels
