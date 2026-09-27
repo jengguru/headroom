@@ -59,6 +59,11 @@ struct PopoverView: View {
         }
         .frame(width: 320)
         .fixedSize(horizontal: false, vertical: true)
+        // MenuBarExtra's own window doesn't reliably shrink back down once
+        // it's grown for a taller view (e.g. Settings) — `fixedSize` and
+        // `.id`-driven rebuilds report the right ideal size, but the actual
+        // NSWindow can still keep its old, taller frame. Force it directly.
+        .background(WindowHeightSync())
         .onAppear { shown.forEach { $0.refreshIfStale() } }
     }
 
@@ -426,5 +431,36 @@ private struct StatusLine: View {
             guard let snapshot = provider.snapshot else { return "Waiting for data" }
             return "Updated \(UsageFormatting.relativeAge(of: snapshot.fetchedAt, now: now))"
         }
+    }
+}
+
+/// Invisible helper that keeps the enclosing `MenuBarExtra` window's actual
+/// frame in sync with its SwiftUI content's ideal height. `MenuBarExtra`'s
+/// window can grow to fit a taller view (e.g. Settings) and then simply not
+/// shrink back down on its own once a shorter view replaces it, leaving
+/// blank space (and its shadow) reserved above the visible content. This
+/// reads the hosting view's real fitting size and resizes the window to
+/// match, anchoring the window's top edge so it keeps hanging from the
+/// status item rather than growing/shrinking from the wrong end.
+private struct WindowHeightSync: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async { Self.sync(view) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { Self.sync(nsView) }
+    }
+
+    private static func sync(_ view: NSView) {
+        guard let window = view.window, let contentView = window.contentView else { return }
+        let fittingHeight = contentView.fittingSize.height
+        guard fittingHeight > 0, abs(window.frame.height - fittingHeight) > 0.5 else { return }
+        var frame = window.frame
+        let top = frame.maxY
+        frame.size.height = fittingHeight
+        frame.origin.y = top - fittingHeight
+        window.setFrame(frame, display: true)
     }
 }
