@@ -5,6 +5,7 @@ Notable changes to Headroom, newest first. Loosely follows [Keep a Changelog](ht
 ## [Unreleased]
 - Added: a per-provider Refresh button (Claude, Codex) next to each provider's heading in the combined popover, so refreshing one no longer re-polls the other.
 - Changed: tightened card padding, bar height and font sizes in the combined popover so Claude + Codex together take noticeably less vertical space.
+- Fixed: the popover no longer leaves blank space reserved above its content — the window was sticking to whatever height Settings (its tallest view) had last needed instead of shrinking back down.
 - Changed: README links point at jengguru/headroom; new tagline.
 
 ## [0.3.0] - 2026-09-23

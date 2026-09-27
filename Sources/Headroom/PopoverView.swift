@@ -48,6 +48,10 @@ struct PopoverView: View {
             }
         }
         .frame(width: 320)
+        // Without this, the MenuBarExtra window keeps whatever height was
+        // tallest so far (e.g. Settings) and doesn't shrink back down for a
+        // shorter view, leaving blank space reserved above it.
+        .fixedSize(horizontal: false, vertical: true)
         .onAppear { shown.forEach { $0.refreshIfStale() } }
     }
 
