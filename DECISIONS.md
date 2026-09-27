@@ -52,6 +52,17 @@ window is first created, and stashes a weak reference to it
 `window.makeKeyAndOrderFront(nil)` on every click after `NSApp.activate` —
 not just the first time the window is created.
 
+**Second follow-up (still confirmed behind other apps' windows):**
+`activate` + `makeKeyAndOrderFront` weren't enough either — macOS
+deliberately restricts an accessory-policy (`.accessory`) app from forcing
+its windows above other apps'; that's the point of that policy, not a bug
+to route around locally. The gear button now flips
+`NSApp.setActivationPolicy(.regular)` before showing Settings (which lifts
+that restriction, at the cost of a Dock icon appearing while the window is
+open — same trade-off other menu-bar-only apps make for their own
+Settings/About windows), and `SettingsWindowSetup` flips it back to
+`.accessory` via `NSWindow.willCloseNotification` once the window closes.
+
 ## 2026-09-27 — Made the combined popover more compact by tightening spacing, not restructuring it
 
 **Context:** With Claude + Codex both on, the combined popover's stacked

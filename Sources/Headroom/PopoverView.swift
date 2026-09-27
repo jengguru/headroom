@@ -62,14 +62,19 @@ struct PopoverView: View {
                 // clicked, so this closes it rather than leaving it open
                 // behind the Settings window.
                 NSApp.keyWindow?.close()
-                // The classic AppKit trick for opening a SwiftUI `Settings`
-                // scene's window on demand: a menu-bar-only (LSUIElement)
-                // app has no visible "Settings…" app-menu item to click,
-                // but this selector still triggers it (creating the window
-                // the first time). An accessory app doesn't reliably bring
-                // its own windows to the front or the current Space on its
-                // own, so once the window exists, force both explicitly too.
+                // An accessory (LSUIElement) app is deliberately restricted
+                // from forcing its windows above other apps' — that's the
+                // whole point of being an accessory app. Switching to
+                // .regular for as long as Settings is open (reverted in
+                // SettingsWindowSetup once it closes) lifts that
+                // restriction, the same trick other menu-bar-only apps use
+                // for their own Settings/About windows.
+                NSApp.setActivationPolicy(.regular)
                 NSApp.activate(ignoringOtherApps: true)
+                // The classic AppKit trick for opening a SwiftUI `Settings`
+                // scene's window on demand: there's no visible app-menu
+                // "Settings…" item to click, but this selector still
+                // triggers it (creating the window the first time).
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 DispatchQueue.main.async {
                     SettingsWindowReference.window?.makeKeyAndOrderFront(nil)

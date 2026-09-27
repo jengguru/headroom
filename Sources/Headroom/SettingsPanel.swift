@@ -123,6 +123,13 @@ private struct SettingsWindowSetup: NSViewRepresentable {
             guard let window = view.window else { return }
             window.collectionBehavior.insert(.moveToActiveSpace)
             SettingsWindowReference.window = window
+            // Switching back to .accessory (see the gear button) hides the
+            // Dock icon again once Settings is closed.
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: window, queue: .main
+            ) { _ in
+                NSApp.setActivationPolicy(.accessory)
+            }
         }
         return view
     }
