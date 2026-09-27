@@ -5,6 +5,27 @@ decision, newest first. `CHANGELOG.md` says *what* shipped; this says *why*,
 including the paths that were tried and abandoned, so nobody (human or
 Claude) re-litigates or re-tries them from scratch.
 
+## 2026-09-27 — Distribute via a separate Homebrew tap, not the main repo
+
+**Context:** Wanted `brew install --cask headroom` instead of manually
+downloading `Headroom.zip` and dragging it into Applications.
+
+**Decision:** Headroom isn't notable enough to be accepted into the
+official `homebrew-cask` repo, so distribution goes through a personal tap:
+[jengguru/homebrew-headroom](https://github.com/jengguru/homebrew-headroom),
+holding only `Casks/headroom.rb` (points `url`/`sha256` at this repo's
+GitHub Releases) and a README. No app code lives there and it isn't a
+place to develop features — see this repo's own `CLAUDE.md` for the
+release steps that keep it in sync.
+
+**Hit along the way:**
+- Pushing the release tag itself (not just branches) got a 403 from this
+  session's git credentials; tags needed pushing from a machine with real
+  rights to the repo.
+- The tap repo's branch ruleset required a "macos" status check that no
+  workflow in that repo produces, permanently blocking every push until
+  the requirement was removed — a tap this small doesn't need CI.
+
 ## 2026-09-27 — Settings is a real window, not swapped into the popover
 
 **Context:** Settings used to swap in place of the main usage view inside

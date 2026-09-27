@@ -24,5 +24,19 @@ a future session.
   ad-hoc-signed `Headroom.app`; `scripts/smoke-test.sh` launches it.
 
 ## Releasing
-Push a tag `vX.Y.Z` on `main` matching `Info.plist`'s version — `release.yml`
-builds the universal app and publishes it as a GitHub Release.
+1. Bump `Resources/Info.plist`'s `CFBundleShortVersionString` (and
+   `CFBundleVersion`) and move `CHANGELOG.md`'s `[Unreleased]` entries under
+   the new version, in a normal branch → PR → merge.
+2. Push a tag `vX.Y.Z` on `main` matching that version. `release.yml` builds
+   the universal app and publishes it as a GitHub Release (`Headroom.zip` +
+   its SHA-256).
+   - Tag pushes need a real push from a machine with rights to it — a
+     session whose git access is scoped to branch pushes only will get a
+     403 pushing the tag itself; push it from a local checkout instead.
+3. Update the Homebrew tap so `brew upgrade --cask headroom` picks up the
+   new version: in [jengguru/homebrew-headroom](https://github.com/jengguru/homebrew-headroom),
+   bump `Casks/headroom.rb`'s `version` to the new tag and `sha256` to the
+   new release's `Headroom.zip` digest (from the release page or its
+   `Headroom.zip.sha256` asset). That tap is a separate repo — it holds
+   only that one cask file pointing at this repo's releases, nothing else
+   to develop there.

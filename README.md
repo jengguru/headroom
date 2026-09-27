@@ -23,6 +23,17 @@ Requires macOS 13+ and at least one of:
 
 ## Download
 
+### Homebrew (recommended)
+
+```
+brew tap jengguru/headroom
+brew install --cask headroom
+```
+
+Update later with `brew upgrade --cask headroom`. The cask lives in [jengguru/homebrew-headroom](https://github.com/jengguru/homebrew-headroom) — see that repo for how it's kept in sync with releases here.
+
+### Manual download
+
 **[⬇ Download the latest Headroom.zip](https://github.com/jengguru/headroom/releases/latest/download/Headroom.zip)** · [all releases](https://github.com/jengguru/headroom/releases)
 
 1. Unzip the file and move **Headroom.app** to **Applications**.
