@@ -58,6 +58,10 @@ struct PopoverView: View {
             }
             Spacer()
             Button {
+                // The popover is still key at the moment its own button is
+                // clicked, so this closes it rather than leaving it open
+                // behind the Settings window.
+                NSApp.keyWindow?.close()
                 // The classic AppKit trick for opening a SwiftUI `Settings`
                 // scene's window on demand: a menu-bar-only (LSUIElement)
                 // app has no visible "Settings…" app-menu item to click,
