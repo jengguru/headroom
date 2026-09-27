@@ -3,6 +3,8 @@
 Notable changes to Headroom, newest first. Loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+## [0.4.0] - 2026-09-27
 - Added: a per-provider Refresh button (Claude, Codex) next to each provider's heading in the combined popover, so refreshing one no longer re-polls the other.
 - Changed: tightened card padding, bar height and font sizes in the combined popover so Claude + Codex together take noticeably less vertical space.
 - Changed: Settings is now a real window (opened from the gear button) instead of swapping in place inside the popover — the popover's window wasn't reliably shrinking back down after showing the taller Settings view, leaving blank space (and its shadow) above the content.
