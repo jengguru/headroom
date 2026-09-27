@@ -23,7 +23,6 @@ struct PopoverView: View {
     let scope: UsageProvider?
 
     @EnvironmentObject private var store: UsageStore
-    @State private var showingSettings = false
 
     private var shownStores: [ProviderStore] {
         if let scope { return [store.store(for: scope)] }
@@ -35,17 +34,12 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             header(shown)
                 .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
+                .padding(.top, 14)
+                .padding(.bottom, 10)
 
-            if showingSettings {
-                SettingsPanel(done: { showingSettings = false })
-                    .environmentObject(store)
-            } else {
-                content(shown)
-                Divider()
-                actions(shown).padding(16)
-            }
+            content(shown)
+            Divider()
+            actions(shown).padding(16)
         }
         .frame(width: 320)
         .onAppear { shown.forEach { $0.refreshIfStale() } }
@@ -64,14 +58,34 @@ struct PopoverView: View {
             }
             Spacer()
             Button {
-                showingSettings.toggle()
+                // The popover is still key at the moment its own button is
+                // clicked, so this closes it rather than leaving it open
+                // behind the Settings window.
+                NSApp.keyWindow?.close()
+                // An accessory (LSUIElement) app is deliberately restricted
+                // from forcing its windows above other apps' — that's the
+                // whole point of being an accessory app. Switching to
+                // .regular for as long as Settings is open (reverted in
+                // SettingsWindowSetup once it closes) lifts that
+                // restriction, the same trick other menu-bar-only apps use
+                // for their own Settings/About windows.
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+                // The classic AppKit trick for opening a SwiftUI `Settings`
+                // scene's window on demand: there's no visible app-menu
+                // "Settings…" item to click, but this selector still
+                // triggers it (creating the window the first time).
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                DispatchQueue.main.async {
+                    SettingsWindowReference.window?.makeKeyAndOrderFront(nil)
+                }
             } label: {
-                Image(systemName: showingSettings ? "xmark.circle" : "gearshape")
+                Image(systemName: "gearshape")
                     .font(.system(size: 16))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help(showingSettings ? "Close settings" : "Settings")
+            .help("Settings")
         }
     }
 
@@ -84,7 +98,7 @@ struct PopoverView: View {
 
     @ViewBuilder
     private func content(_ shown: [ProviderStore]) -> some View {
-        VStack(spacing: shown.count > 1 ? 16 : 12) {
+        VStack(spacing: shown.count > 1 ? 10 : 12) {
             if shown.isEmpty {
                 MessageCard(icon: "switch.2", text: "Turn on Claude or Codex in Settings.")
             }
@@ -141,7 +155,7 @@ private struct ProviderSection: View {
     let isOnlyProvider: Bool
 
     var body: some View {
-        VStack(spacing: isOnlyProvider ? 12 : 8) {
+        VStack(spacing: isOnlyProvider ? 12 : 6) {
             if !isOnlyProvider { heading }
             cards
             if provider.provider == .codex {
@@ -222,7 +236,7 @@ private struct Card<Content: View>: View {
 
     var body: some View {
         content
-            .padding(14)
+            .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.primary.opacity(0.05)))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
@@ -241,7 +255,7 @@ private struct UsageBar: View {
                     .frame(width: max(geometry.size.width * fraction, fraction > 0 ? 6 : 0))
             }
         }
-        .frame(height: 6)
+        .frame(height: 5)
     }
 }
 
@@ -262,14 +276,14 @@ private struct UsageCard: View {
     private var compactBody: some View {
         let level = UsageLevel(utilization: window.utilization)
         return Card {
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline) {
                     Label(window.title, systemImage: icon)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text("\(UsageFormatting.percent(window.utilization))%")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
                         .foregroundStyle(level == .normal ? Color.primary : level.color)
                         .monospacedDigit()
                 }
@@ -313,7 +327,7 @@ private struct CompactUsageRow: View {
     var body: some View {
         let level = UsageLevel(utilization: window.utilization)
         Card {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(window.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     Spacer()
