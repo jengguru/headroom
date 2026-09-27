@@ -27,10 +27,18 @@ Requires macOS 13+ and at least one of:
 
 ```
 brew tap jengguru/headroom
-brew install --cask headroom
+brew install --cask jengguru/headroom/headroom
 ```
 
-Update later with `brew upgrade --cask headroom`. The cask lives in [jengguru/homebrew-headroom](https://github.com/jengguru/homebrew-headroom) — see that repo for how it's kept in sync with releases here.
+The cask name must be spelled out in full (`jengguru/headroom/headroom`, not
+just `headroom`): the official Homebrew Cask repository already has an
+unrelated cask also named `headroom` (for [extraheadroom.com](https://extraheadroom.com)),
+and it takes priority over a personal tap's cask of the same name — `brew
+install --cask headroom` alone installs *that* app, not this one.
+
+Update later with `brew upgrade --cask jengguru/headroom/headroom`. The cask
+lives in [jengguru/homebrew-headroom](https://github.com/jengguru/homebrew-headroom)
+— see that repo for how it's kept in sync with releases here.
 
 ### Manual download
 

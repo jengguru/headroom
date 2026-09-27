@@ -25,6 +25,21 @@ release steps that keep it in sync.
 - The tap repo's branch ruleset required a "macos" status check that no
   workflow in that repo produces, permanently blocking every push until
   the requirement was removed — a tap this small doesn't need CI.
+- **`brew install --cask headroom` (bare, no tap prefix) installs the wrong
+  app.** The official Homebrew Cask repository already has an unrelated
+  cask named `headroom` (for [extraheadroom.com](https://extraheadroom.com),
+  a "Headroom Labs" video-call app) — confirmed on a real Mac: it has its
+  own sign-in flow and a completely different icon, nothing to do with this
+  project. The trusted official cask wins over a personal tap's identically
+  named one, silently. The only fix is always using the fully-qualified
+  name: `brew install --cask jengguru/headroom/headroom` (and the same
+  for `brew upgrade`) — README.md and CLAUDE.md's Releasing section both
+  say this now. Renaming this project's own cask token was considered and
+  rejected: it wouldn't remove the ambiguity (the collision would just move
+  to whatever new name is picked, and `headroom` is also the name of at
+  least two other unrelated Claude/Codex usage-tracking side projects found
+  when investigating this), so full qualification is the actual fix, not a
+  workaround.
 
 ## 2026-09-27 — Settings is a real window, not swapped into the popover
 

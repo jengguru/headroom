@@ -33,10 +33,15 @@ a future session.
    - Tag pushes need a real push from a machine with rights to it — a
      session whose git access is scoped to branch pushes only will get a
      403 pushing the tag itself; push it from a local checkout instead.
-3. Update the Homebrew tap so `brew upgrade --cask headroom` picks up the
-   new version: in [jengguru/homebrew-headroom](https://github.com/jengguru/homebrew-headroom),
+3. Update the Homebrew tap so `brew upgrade --cask jengguru/headroom/headroom`
+   picks up the new version: in [jengguru/homebrew-headroom](https://github.com/jengguru/homebrew-headroom),
    bump `Casks/headroom.rb`'s `version` to the new tag and `sha256` to the
    new release's `Headroom.zip` digest (from the release page or its
    `Headroom.zip.sha256` asset). That tap is a separate repo — it holds
    only that one cask file pointing at this repo's releases, nothing else
    to develop there.
+
+Always use the fully-qualified cask name, `jengguru/headroom/headroom` — the
+official Homebrew Cask repository has an unrelated cask also named
+`headroom` (for extraheadroom.com) that a bare `--cask headroom` resolves to
+instead. See `DECISIONS.md`.
