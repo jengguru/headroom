@@ -22,11 +22,19 @@ private; nothing guarantees it keeps working, or keeps the same name,
 across macOS versions, and evidently it didn't survive to macOS 26.
 
 **Decision:** Use SwiftUI's own public `openSettings` environment action
-(`@Environment(\.openSettings)`, macOS 14+) instead, gated by
-`if #available(macOS 14.0, *)`. The private selector is now only a
-fallback for macOS 13 itself (which predates the public API and can't use
-it) — every macOS version this app has actually been confirmed to run on
-now goes through the documented path.
+(`@Environment(\.openSettings)`, macOS 14+) instead. The private selector
+is now only a fallback for macOS 13 itself (which predates the public API
+and can't use it) — every macOS version this app has actually been
+confirmed to run on now goes through the documented path.
+
+**Hit along the way:** Swift rejects `@available` directly on a stored
+property (`@Environment` is one) — "stored properties cannot be marked
+potentially unavailable" — caught by CI, not locally, since this sandbox
+has no Swift toolchain. The macOS 14+ `openSettings` access had to move
+into its own small `@available(macOS 14.0, *)`-gated `View` type
+(`ModernSettingsGearButton` in `PopoverView.swift`), picked at runtime
+with `if #available` from a plain (ungated) wrapper view, instead of
+being a conditionally-available property directly on `PopoverView`.
 
 **If this breaks again:** don't reach for another private selector: the
 private path is exactly the kind of thing that stopped working here once
