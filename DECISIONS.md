@@ -5,6 +5,55 @@ decision, newest first. `CHANGELOG.md` says *what* shipped; this says *why*,
 including the paths that were tried and abandoned, so nobody (human or
 Claude) re-litigates or re-tries them from scratch.
 
+## 2026-09-27 — Settings window: own it directly with AppKit, don't trigger SwiftUI's `Settings { }` scene at all
+
+**Context:** The v0.4.0 gear button opened Settings via
+`NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)` —
+the only way to trigger a SwiftUI `Settings { }` scene's window
+programmatically that existed when this app's minimum target (macOS 13,
+Ventura) was set. Confirmed working during development on an older macOS
+version.
+
+**Broke on a real Mac running macOS 26:** clicking the gear closed the
+popover and switched the Dock icon on (so the activation-policy dance was
+fine), but no Settings window ever appeared — `sendAction` was silently
+returning without effect. `showSettingsWindow:` is undocumented and
+private; nothing guarantees it keeps working, or keeps the same name,
+across macOS versions, and evidently it didn't survive to macOS 26.
+
+**First attempt, also wrong:** switching to SwiftUI's own public
+`openSettings` environment action (`@Environment(\.openSettings)`) looked
+like the obvious documented replacement. Two problems, both only caught
+by CI (this sandbox has no Swift toolchain to compile locally):
+1. Swift rejects `@available` directly on a stored property (which is
+   what an `@Environment`-wrapped property is) — "stored properties
+   cannot be marked potentially unavailable". Moving it into its own
+   `@available(macOS 14.0, *)`-gated `View` type fixed *that* error...
+2. ...but `openSettings` (the *public*, non-underscored spelling) only
+   exists in the macOS 15+ (Sequoia, Xcode 16) SDK. CI's runner (and this
+   app's macOS 13 minimum) predates that SDK entirely, so `\.openSettings`
+   doesn't resolve as a key path at all there — not an availability
+   question `#available` can guard, since the symbol itself isn't in the
+   SDK the compiler was built against. (Before Xcode 16 the only version
+   of this action was `_openSettings`, itself private/underscored — no
+   better than the selector we were replacing.)
+
+**Decision:** Stop triggering SwiftUI's `Settings` scene by any
+mechanism, public or private. `SettingsWindowController` (in
+`SettingsPanel.swift`) now creates and owns a plain `NSWindow` directly
+via `NSHostingController`, exactly like any other AppKit window this app
+manages itself (same pattern as the app already uses for
+`.moveToActiveSpace` and the activation-policy dance). No `Settings { }`
+scene is declared in `HeadroomApp.swift` at all. This needs no
+OS-version-gated API whatsoever, so there's no SDK or macOS-version floor
+to keep tracking as Apple's own scene-triggering mechanism keeps
+changing under us.
+
+**If a Settings-window bug shows up again:** it's now an ordinary
+`NSWindow` bug (sizing, front-ordering, Space-following) — debug it like
+any other AppKit window in this codebase, not as an Apple-API-compatibility
+problem.
+
 ## 2026-09-27 — Distribute via a separate Homebrew tap, not the main repo
 
 **Context:** Wanted `brew install --cask headroom` instead of manually

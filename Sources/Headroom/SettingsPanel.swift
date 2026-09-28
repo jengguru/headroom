@@ -3,11 +3,43 @@ import ServiceManagement
 import SwiftUI
 import HeadroomCore
 
-/// Holds a reference to the Settings window once it exists, so the gear
-/// button can bring it forward on every later click — an accessory
-/// (`LSUIElement`) app doesn't do that for its windows on its own.
-enum SettingsWindowReference {
-    static weak var window: NSWindow?
+/// Owns the Settings window directly with plain AppKit, rather than
+/// routing through SwiftUI's `Settings { }` scene: triggering that scene
+/// on demand needs either a private selector (`showSettingsWindow:`,
+/// which broke on macOS 26) or the public `openSettings` environment
+/// action (only in the macOS 15+ SDK — too new for this project's macOS
+/// 13 minimum, and not present in CI's SDK either). Managing the window
+/// ourselves needs no OS-version-specific API at all.
+enum SettingsWindowController {
+    private static weak var window: NSWindow?
+
+    static func show(store: UsageStore) {
+        if let window {
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        // NSWindow(contentViewController:) sizes the window to the hosted
+        // SwiftUI view's own ideal size; assigning a plain NSHostingView to
+        // a zero-rect window's contentView wouldn't auto-size it.
+        let controller = NSHostingController(rootView: SettingsPanel().environmentObject(store))
+        let window = NSWindow(contentViewController: controller)
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.title = "Headroom Settings"
+        window.isReleasedWhenClosed = false
+        // Without this an accessory app's window stays pinned to whichever
+        // macOS Space it first opened on.
+        window.collectionBehavior.insert(.moveToActiveSpace)
+        window.center()
+        // Switching back to .accessory (see the gear button) hides the
+        // Dock icon again once Settings is closed.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: window, queue: .main
+        ) { _ in
+            NSApp.setActivationPolicy(.accessory)
+        }
+        self.window = window
+        window.makeKeyAndOrderFront(nil)
+    }
 }
 
 struct SettingsPanel: View {
@@ -72,7 +104,6 @@ struct SettingsPanel: View {
         }
         .padding(20)
         .frame(width: 360)
-        .background(SettingsWindowSetup())
     }
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -110,29 +141,4 @@ struct SettingsPanel: View {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }
-}
-
-/// Invisible helper that captures the Settings window once, the first time
-/// its content is created, and sets it to follow you to whichever macOS
-/// Space is currently active. Without this an accessory app's window stays
-/// pinned to the Space it first opened on.
-private struct SettingsWindowSetup: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async {
-            guard let window = view.window else { return }
-            window.collectionBehavior.insert(.moveToActiveSpace)
-            SettingsWindowReference.window = window
-            // Switching back to .accessory (see the gear button) hides the
-            // Dock icon again once Settings is closed.
-            NotificationCenter.default.addObserver(
-                forName: NSWindow.willCloseNotification, object: window, queue: .main
-            ) { _ in
-                NSApp.setActivationPolicy(.accessory)
-            }
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
 }

@@ -57,29 +57,7 @@ struct PopoverView: View {
                 Text(subtitle(shown)).font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
-            Button {
-                // The popover is still key at the moment its own button is
-                // clicked, so this closes it rather than leaving it open
-                // behind the Settings window.
-                NSApp.keyWindow?.close()
-                // An accessory (LSUIElement) app is deliberately restricted
-                // from forcing its windows above other apps' — that's the
-                // whole point of being an accessory app. Switching to
-                // .regular for as long as Settings is open (reverted in
-                // SettingsWindowSetup once it closes) lifts that
-                // restriction, the same trick other menu-bar-only apps use
-                // for their own Settings/About windows.
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
-                // The classic AppKit trick for opening a SwiftUI `Settings`
-                // scene's window on demand: there's no visible app-menu
-                // "Settings…" item to click, but this selector still
-                // triggers it (creating the window the first time).
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                DispatchQueue.main.async {
-                    SettingsWindowReference.window?.makeKeyAndOrderFront(nil)
-                }
-            } label: {
+            Button(action: openSettingsWindow) {
                 Image(systemName: "gearshape")
                     .font(.system(size: 16))
                     .foregroundStyle(.secondary)
@@ -87,6 +65,22 @@ struct PopoverView: View {
             .buttonStyle(.plain)
             .help("Settings")
         }
+    }
+
+    private func openSettingsWindow() {
+        // The popover is still key at the moment its own button is
+        // clicked, so this closes it rather than leaving it open behind
+        // the Settings window.
+        NSApp.keyWindow?.close()
+        // An accessory (LSUIElement) app is deliberately restricted from
+        // forcing its windows above other apps' — that's the whole point
+        // of being an accessory app. Switching to .regular for as long as
+        // Settings is open (reverted in SettingsWindowController once it
+        // closes) lifts that restriction, the same trick other
+        // menu-bar-only apps use for their own Settings/About windows.
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        SettingsWindowController.show(store: store)
     }
 
     private func subtitle(_ shown: [ProviderStore]) -> String {
