@@ -41,14 +41,10 @@ struct HeadroomApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        // A real window rather than embedding it in a MenuBarExtra popover:
-        // that popover's window doesn't reliably shrink back down once it's
-        // grown to fit a taller view. Opened via the gear button's
-        // `showSettingsWindow:` selector, since an LSUIElement app has no
-        // visible app-menu "Settings…" item of its own.
-        Settings {
-            SettingsPanel().environmentObject(store)
-        }
+        // No `Settings { }` scene: Settings is a real window, but one
+        // this app opens and owns itself (SettingsWindowController), not
+        // one triggered through SwiftUI's Settings scene machinery. See
+        // that type's doc comment for why.
     }
 
     /// Visibility follows the settings; removing an item by ⌘-dragging it out is ignored.
