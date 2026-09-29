@@ -3,6 +3,8 @@
 Notable changes to Headroom, newest first. Loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+## [0.4.1] - 2026-09-29
 - Fixed: the gear button's Settings window failed to open at all on macOS 26 — it relied on a private, undocumented `showSettingsWindow:` selector that stopped working on that OS version. Settings is now a plain `NSWindow` this app creates and owns directly, instead of one triggered through SwiftUI's `Settings { }` scene.
 
 ## [0.4.0] - 2026-09-27
